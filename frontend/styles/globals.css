@@ -1,0 +1,7 @@
+/* Basic reset or Tailwind base styles */
+/* If using Tailwind, these would typically be @tailwind base, components, utilities */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+}
