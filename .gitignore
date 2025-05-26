@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-wheel-metadata/
+.eggs/
+*.egg-info/
+*.egg
+dist/
+build/
+*.ini
+*.log
+.idea/
+.vscode/
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+.next/
+out/
+coverage/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+._*
+
+# Windows
+desktop.ini
+$RECYCLE.BIN/
+
+# IDEs and editors
+.idea/
+*.swp
+*.swo
+*~
