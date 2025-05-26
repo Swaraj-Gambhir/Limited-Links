@@ -64,3 +64,27 @@ async def get_current_user(token: str = Security(oauth2_scheme)):
         raise credentials_exception
     except Exception: # Catch any other error during placeholder logic
         raise credentials_exception
+
+# For View Tokens
+from datetime import datetime, timedelta, timezone
+# settings is already imported
+
+ALGORITHM = "HS256" # For view tokens
+
+def create_view_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.VIEW_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, settings.VIEW_TOKEN_SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def verify_view_access_token(token: str):
+    try:
+        payload = jwt.decode(token, settings.VIEW_TOKEN_SECRET_KEY, algorithms=[ALGORITHM])
+        # You could add more checks here, like if the required data (e.g., user_id, folder_id) is in payload
+        return payload
+    except JWTError:
+        return None
