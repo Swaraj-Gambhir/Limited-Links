@@ -3,3 +3,4 @@ uvicorn[standard]
 python-jose[cryptography]
 pydantic-settings
 msgraph-sdk-python
+httpx

@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import Link from 'next/link'; // For linking to a future view page
+import Link from 'next/link';
 import Layout from '../components/Layout';
-// import styles from './Folders.module.css'; // Optional: for page-specific styling
 
 interface FolderItem {
-  id: string; // SharePoint item ID or path
+  id: string;
   name: string;
-  // Add other properties if your backend's FolderItem model includes them
 }
 
 export default function FoldersPage() {
@@ -16,14 +14,16 @@ export default function FoldersPage() {
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingFolders, setIsLoadingFolders] = useState(false);
+  const [viewLink, setViewLink] = useState<string | null>(null); // For storing and displaying the generated link
 
   useEffect(() => {
     if (session) {
       const fetchFolders = async () => {
         setIsLoadingFolders(true);
         setError(null);
+        setViewLink(null); // Clear previous link
         try {
-          const response = await fetch('/api/v1/list-folders/', {
+          const response = await fetch('http://localhost:8000/api/v1/list-folders/', {
             headers: {
               'Authorization': `Bearer ${session.accessToken}`,
             },
@@ -47,6 +47,38 @@ export default function FoldersPage() {
     }
   }, [session]);
 
+  const handleGenerateViewLink = async (folderIdentifier: string, folderName: string) => {
+    if (!session) return;
+    setError(null);
+    setViewLink(null);
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/generate-view-link/${encodeURIComponent(folderIdentifier)}`, {
+        method: 'GET', // Or POST if your backend expects that
+        headers: {
+          'Authorization': `Bearer ${session.accessToken}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Construct the full URL for the link to be opened in a new tab
+        const fullViewLink = `http://localhost:8000${data.view_link}`;
+        setViewLink(fullViewLink);
+        // Open in new tab:
+        // window.open(fullViewLink, '_blank'); 
+        // Or display it:
+        alert(`View link for ${folderName}: ${fullViewLink}\n\n(This will be displayed on the page instead of an alert)`);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.detail || `Failed to generate link for ${folderName}.`);
+      }
+    } catch (err) {
+      console.error(`Error generating link for ${folderName}:`, err);
+      setError(`An unexpected error occurred while generating the link for ${folderName}.`);
+    }
+  };
+
+
   if (loading) {
     return <Layout><p>Loading session...</p></Layout>;
   }
@@ -65,6 +97,14 @@ export default function FoldersPage() {
       <h1>My Uploaded Folders</h1>
       {isLoadingFolders && <p>Loading folders...</p>}
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+      
+      {viewLink && (
+        <div style={{ margin: '20px 0', padding: '10px', border: '1px solid green' }}>
+          <p>Generated View Link: <a href={viewLink} target="_blank" rel="noopener noreferrer">{viewLink}</a></p>
+          <p><small>(Link will expire in {process.env.NEXT_PUBLIC_VIEW_TOKEN_EXPIRE_MINUTES || 15} minutes)</small></p>
+        </div>
+      )}
+
       {!isLoadingFolders && !error && folders.length === 0 && (
         <p>You haven't uploaded any folders yet.</p>
       )}
@@ -73,20 +113,13 @@ export default function FoldersPage() {
           {folders.map((folder) => (
             <li key={folder.id}>
               {folder.name}
-              {/* 
-                Placeholder for view link. 
-                The href will eventually point to a page like /view/[folderId] 
-                or trigger an action to generate and navigate to a temporary view link.
-              */}
-              {/* <Link href={`/view/${folder.id}`}> View </Link> */}
-              <button onClick={() => alert(`Viewing folder: ${folder.name} (ID: ${folder.id}) - Link generation TBD`)} style={{ marginLeft: '10px' }}>
-                View (Placeholder)
+              <button onClick={() => handleGenerateViewLink(folder.id, folder.name)} style={{ marginLeft: '10px' }}>
+                Generate View Link
               </button>
             </li>
           ))}
         </ul>
       )}
-      {/* You might want a link to the upload page from here if no folders exist */}
       {!isLoadingFolders && folders.length === 0 && (
          <p>Want to upload something? <Link href="/upload">Upload a folder</Link></p>
       )}

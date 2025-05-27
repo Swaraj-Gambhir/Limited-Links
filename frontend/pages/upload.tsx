@@ -42,7 +42,7 @@ export default function UploadPage() {
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/v1/upload-zipped-folder/', { // Assuming backend runs on the same base URL or proxy is set up
+      const response = await fetch('http://localhost:8000/api/v1/upload-zipped-folder/', { // Assuming backend runs on the same base URL or proxy is set up
         method: 'POST',
         headers: {
           // NextAuth.js automatically handles the Authorization header for relative API routes
