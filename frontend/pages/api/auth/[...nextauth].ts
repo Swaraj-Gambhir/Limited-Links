@@ -1,74 +1,55 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import AzureADProvider from "next-auth/providers/azure-ad";
 
-// Ensure your environment variables are correctly prefixed if accessed client-side,
-// but for this server-side file, process.env should work directly for vars defined in .env.local or deployment environment.
-const azureADClientId = process.env.AZURE_AD_CLIENT_ID;
-const azureADClientSecret = process.env.AZURE_AD_CLIENT_SECRET;
-const azureADTenantId = process.env.AZURE_AD_TENANT_ID;
-
-if (!azureADClientId || !azureADClientSecret || !azureADTenantId) {
-  console.error("Azure AD environment variables are not set. Check AZURE_AD_CLIENT_ID, AZURE_AD_CLIENT_SECRET, AZURE_AD_TENANT_ID");
-  // Optionally, throw an error to prevent startup if these are critical
-  // throw new Error("Azure AD environment variables are not fully set.");
-}
-
 export const authOptions: NextAuthOptions = {
   providers: [
     AzureADProvider({
-      clientId: azureADClientId!,
-      clientSecret: azureADClientSecret!,
-      tenantId: azureADTenantId!,
+      clientId: process.env.AZURE_AD_CLIENT_ID!,
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
+      tenantId: process.env.AZURE_AD_TENANT_ID!,
       authorization: {
+        // explicitly hit the v2.0 authorize endpoint
+        url: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/oauth2/v2.0/authorize`,
         params: {
-          scope: `openid profile email offline_access api://${azureADClientId}/.default`
-          // This scope requests an access token for your own application (API).
-          // The audience ('aud' claim) of this token will be your application's Client ID.
-          // 'offline_access' is included to allow for refresh tokens if needed.
+          // request the v2.0 scopes you exposed
+          scope: [
+            "openid",
+            "profile",
+            "email",
+            "offline_access",                           // for refresh tokens
+            `api://${process.env.AZURE_AD_CLIENT_ID}/access_as_user/Write`
+          ].join(" "),
+          response_type: "code",                         // authorization code flow
+          response_mode: "query"
         },
       },
-      // If you had a profile callback, it can remain:
-      // profile(profile) {
-      //   console.log("DEBUG: NextAuth profile callback, profile object:", profile); // Good for debugging claims
-      //   return {
-      //     id: profile.oid, // Or profile.sub
-      //     name: profile.name,
-      //     email: profile.email || profile.upn,
-      //     // Add other properties you need from the Azure AD profile
-      //   };
-      // },
     }),
   ],
-  // Callbacks for JWT and session handling can remain as previously defined
-  // Ensure they correctly handle the claims from a v2.0 token
+  // Optional: Add callbacks for JWT and session handling
   callbacks: {
     async jwt({ token, account, profile }) {
-      if (account && profile) { // profile is available only upon sign-in
-        token.accessToken = account.access_token;
-        // For v2.0 tokens, 'oid' is the user's object ID, 'sub' can also be used.
-        // 'tid' is the tenant ID.
-        token.id = profile.oid; 
-        token.tenantId = profile.tid;
-        // You can add other profile information to the token here if needed
-        // console.log("DEBUG: NextAuth jwt callback - account:", account);
-        // console.log("DEBUG: NextAuth jwt callback - profile:", profile);
-      }
-      // console.log("DEBUG: NextAuth jwt callback - token:", token);
+      // Persist the access_token and other necessary info to the token right after signin
+      if (account && profile) {
+  token.accessToken = account.access_token;
+  token.idToken = account.id_token;  // <-- add this
+  token.id = profile.oid;
+  token.tenantId = profile.tid;
+}
+
       return token;
     },
     async session({ session, token }) {
+      // Send properties to the client, like an access_token and user id from the token
       session.accessToken = token.accessToken as string;
-      // Ensure session.user is properly typed or checked before assigning
-      if (session.user) {
-        session.user.id = token.id as string;
-        // session.user.tenantId = token.tenantId as string; // If needed on client-side session
-      }
-      // console.log("DEBUG: NextAuth session callback - session:", session);
+      session.user.id = token.id as string;
+      // session.user.tenantId = token.tenantId as string; // If needed
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET, // From .env.local
-  // debug: process.env.NODE_ENV === 'development', // Uncomment for more NextAuth logs
+  // If using a custom secret for JWT signing (recommended)
+  secret: process.env.NEXTAUTH_SECRET,
+  // Enable debug messages in the console if you are having problems
+  // debug: process.env.NODE_ENV === 'development',
 };
 
 export default NextAuth(authOptions);

@@ -22,6 +22,8 @@ export default function FoldersPage() {
         setIsLoadingFolders(true);
         setError(null);
         setViewLink(null); // Clear previous link
+        
+        console.log("Access token:", session.accessToken);
         try {
           const response = await fetch('http://localhost:8000/api/v1/list-folders/', {
             headers: {

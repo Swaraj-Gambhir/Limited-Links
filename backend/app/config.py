@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     SHAREPOINT_HOSTNAME: str
     SHAREPOINT_SITE_NAME: str
     SHAREPOINT_DOCLIB_NAME: str = "Shared Documents"
-
+    SHAREPOINT_SITE_ID: str
     # For temporary view links
     VIEW_TOKEN_SECRET_KEY: str = "a_very_secret_key_for_view_tokens" # Should be strong and from .env
     VIEW_TOKEN_EXPIRE_MINUTES: int = 15
