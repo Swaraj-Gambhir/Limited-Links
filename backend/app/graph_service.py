@@ -32,8 +32,8 @@ class GraphService:
 
             site_path_segment = settings.SHAREPOINT_SITE_NAME.strip('/')
             full_site_path = f"{settings.SHAREPOINT_HOSTNAME}:/{site_path_segment}"
-
-            site = await self.graph_client.sites.by_site_path(site_path=full_site_path).get()
+            site_id=settings.SHAREPOINT_SITE_ID
+            site = await self.graph_client.sites.by_site_id(site_id=site_id).get()
             if not site or not site.id:
                 raise Exception(f"Could not retrieve site with path: {full_site_path}")
             self.site_id = site.id
